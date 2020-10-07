@@ -3,7 +3,8 @@ const express = require('express');
 const router = express.Router();
 const signupTemplate = require('../../views/admin/auth/signup');
 const signinTemplate = require('../../views/admin/auth/signin');
-const { check, validationResult } = require('express-validator');
+const { handleErrors } = require('./middlewares');
+
 const {
   requireEmail,
   requirePassword,
@@ -19,10 +20,10 @@ router.get('/signup', (req, res) => {
 router.post(
   '/signup',
   [requireEmail, requirePassword, requirePasswordConfirmation],
+  handleErrors(signupTemplate),
   async (req, res) => {
-    const { email, password, passwordConfirmation } = req.body;
-    const errors = validationResult(req);
-    console.log(errors);
+    const { email, password } = req.body;
+
     const user = await usersRepo.create({ email, password });
 
     req.session.userId = user.id;
@@ -46,30 +47,19 @@ router.get('/signin', (req, res) => {
 router.post(
   '/signin',
   [requireEmailExists, requireValidPasswordForUser],
+  handleErrors(signinTemplate),
   async (req, res) => {
-    const errors = validationResult(req);
     const { email, password } = req.body;
 
     const user = await usersRepo.getOneBy({ email: email });
-    if (!user) {
-      return res.send(`Email not found !`);
-    }
 
-    const validPassword = await usersRepo.comparePasswords(
-      user.password,
-      password
-    );
-    if (!validPassword) {
-      return res.send(`
-    Wrong password !!
-    `);
-    }
     // Store user cookie
     req.session.userId = user.id;
 
     res.send(`
-  You are signed in !!
-  `);
+      You are signed in !!
+      `);
   }
 );
+
 module.exports = router;
