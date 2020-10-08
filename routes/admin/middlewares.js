@@ -1,11 +1,16 @@
 const { validationResult } = require('express-validator');
 
 module.exports = {
-  handleErrors(templateFunc) {
-    return (req, res, next) => {
+  handleErrors(templateFunc, datacallback) {
+    return async (req, res, next) => {
       const errors = validationResult(req);
+
       if (!errors.isEmpty()) {
-        return res.send(templateFunc({ errors }));
+        let data = {};
+        if (datacallback) {
+          data = await datacallback(req);
+        }
+        return res.send(templateFunc({ errors, ...data }));
       }
       next();
     };
